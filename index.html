@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐈</text></svg>">
-<title>Писк ошейника — обучение</title>
+<title>Поиск кота по писку</title>
 <style>
   :root {
     --bg: #0d1117; --panel: #161b22; --line: #30363d; --text: #e6edf3; --muted: #8b949e;
@@ -52,11 +52,69 @@
   .legend { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
   .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; }
   .legend i:first-child { margin-left: 0; }
+  .tabs { display: flex; gap: 6px; margin: 12px 0 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+  .tab { flex: 1; padding: 10px; border: 0; background: transparent; color: var(--muted); border-radius: 9px; }
+  .tab.on { background: #2d333b; color: var(--text); }
+  .st { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; margin: 12px 0; border: 1px solid var(--line); background: var(--panel); }
+  .st .ic { font-size: 30px; line-height: 1; }
+  .st .t1 { font-size: 19px; font-weight: 700; }
+  .st .t2 { font-size: 13px; color: var(--muted); }
+  .st .cd { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+  .st .cd b { font-size: 19px; display: block; }
+  .st.yes { background: #0f2e17; border-color: #1f6f30; }
+  .st.maybe { background: #3d2e00; border-color: #6e5400; }
+  .st.no { background: var(--panel); }
+  .m2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .delta.up { color: var(--ok); } .delta.down { color: var(--bad); }
+  #radar { width: 100%; max-width: 420px; display: block; margin: 0 auto; touch-action: none; }
+  .hint { font-size: 14px; color: var(--muted); }
+  .dbg { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.6; }
 </style>
 </head>
 <body>
 <main>
-  <h1>🐈 Писк ошейника: обучение</h1>
+  <h1>🐈 Поиск кота по писку</h1>
+  <nav class="tabs"><button id="tabBtnSearch" class="tab on">Поиск</button><button id="tabBtnTrain" class="tab">Обучение</button></nav>
+    <section id="tabSearch">
+    <div class="st no" id="st">
+      <div class="ic" id="stIc">🔇</div>
+      <div>
+        <div class="t1" id="stT1">Не слушаю</div>
+        <div class="t2" id="stT2">Нажмите «Слушать» и включите писк в приложении ошейника</div>
+      </div>
+      <div class="cd hidden" id="stCd"><span class="t2">следующая</span><b id="stCdV">—</b></div>
+    </div>
+
+    <div class="row">
+      <button id="sStart" class="primary big">🎧 Слушать</button>
+      <button id="sStop" class="stop big hidden">■ Стоп</button>
+    </div>
+    <div id="sMsg"></div>
+
+    <div class="m2" style="margin-top:12px">
+      <div class="card"><div class="k">Уровень</div><div class="v"><span id="lvl">—</span> <span class="delta" id="lvlD" style="font-size:15px"></span></div><div class="s" id="lvlS">усреднён по 2 пачкам</div></div>
+      <div class="card"><div class="k">Примерно</div><div class="v" id="dist2">—</div><div class="s">очень грубо, по громкости</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="live-top"><h2 style="margin:0">Откуда громче</h2><span class="muted" id="radarLbl"></span></div>
+      <svg id="radar" viewBox="0 0 300 300" role="img" aria-label="Радар направлений"></svg>
+      <p class="legend" style="text-align:center"><i style="background:#f5b301"></i>громче <i style="background:none;border-top:2px dashed #8b949e"></i>ещё не слушали <i style="background:#f85149"></i>громче всего</p>
+      <div id="gyroMsg" class="status warn hidden"></div>
+      <div class="row" style="margin-top:8px"><button id="sReset" class="big">↻ Начать осмотр заново</button></div>
+      <p class="hint">Телефон у груди, экраном к себе. Поворачивайтесь медленно и лучше в паузах между пачками: шаг, замерли, услышали. Полный круг займёт около 12 пачек (~35 с). Перешли на новое место — нажмите «Начать осмотр заново».</p>
+    </div>
+
+    <div class="panel">
+      <h2>Уровень за последние 2 минуты</h2>
+      <canvas id="spark" height="110"></canvas>
+      <p class="legend"><i style="background:#3fb950"></i>уверенно <i style="background:#f5b301"></i>слабо — если линия растёт, вы приближаетесь</p>
+    </div>
+
+    <details class="panel"><summary class="muted">Отладка</summary><div class="dbg" id="dbg"></div></details>
+  </section>
+
+  <section id="tabTrain" class="hidden">
   <p class="muted">Страница записывает писк, находит точную частоту и ритм и сохраняет «профиль» для будущего режима поиска. Всё считается на телефоне, звук никуда не отправляется.</p>
 
   <div class="panel">
@@ -128,6 +186,7 @@
       <details style="margin-top:12px"><summary class="muted">Показать отчёт</summary><pre id="jsonOut"></pre></details>
     </div>
   </div>
+  </section>
 </main>
 
 <script>
@@ -240,7 +299,7 @@ const Analysis = (() => {
     const out = [];
     for (let s = 0; s + W <= n; s += H) {
       const I = ci[s + W] - ci[s], Q = cq[s + W] - cq[s];
-      out.push(db(2 * Math.hypot(I, Q) / W));
+      out.push(Math.max(-110, db(2 * Math.hypot(I, Q) / W)));   // цифровые нули телефона → пол −110 dB
     }
     return { env: Float32Array.from(out), dt: H / sr, t0: W / 2 / sr };
   }
@@ -249,7 +308,7 @@ const Analysis = (() => {
     const { env, dt, t0 } = envObj;
     const floor = pct(env, 0.2), top = pct(env, 0.995);
     if (top - floor < 12) return { floor, top, thr: NaN, list: [] };
-    const thr = floor + 0.5 * (top - floor), hyst = 3;
+    const thr = Math.max(floor + 0.5 * (top - floor), top - 30), hyst = 3;
     let on = false, start = 0;
     const raw = [];
     for (let i = 0; i < env.length; i++) {
@@ -363,6 +422,190 @@ const Analysis = (() => {
 })();
 if (typeof module !== 'undefined') module.exports = Analysis;
 
+// ===== Детектор пачек писка в реальном времени (без DOM) =====
+const DEFAULT_PROFILE = {
+  f0: 4166,                 // Гц, из записи 16.11.2026
+  periodSec: 3.0027,        // период пачек (по первой и последней пачке записи)
+  // импульсы внутри пачки, мс от начала пачки
+  on: [[0, 130], [200, 330], [400, 530], [600, 790]],
+  gaps: [[150, 190], [350, 390], [550, 590]],
+  refLevelDb: -46.5,        // уровень пачки на refDistanceM (запись 16.11; обучение перезапишет)
+  refDistanceM: 1,
+};
+
+class BeepDetector {
+  constructor(sr, profile = {}, opts = {}) {
+    this.p = Object.assign({}, DEFAULT_PROFILE, profile);
+    this.sr = sr;
+    this.H = Math.round(sr * 0.01);        // шаг 10 мс
+    this.W = 2 * this.H;                    // окно Ханна 20 мс
+    this.T1 = opts.singleDb ?? 5;           // порог одиночной пачки
+    this.Tweak = opts.weakDb ?? 2.5;          // порог «слабой» пачки в ожидаемый момент
+    this.Tfold = opts.foldDb ?? 4;          // порог накопленного профиля
+    const f0 = this.p.f0;
+    this.sigF = [f0 - 40, f0, f0 + 40];
+    this.refF = [f0 - 500, f0 - 250, f0 + 250, f0 + 500];
+    const mk = f => {
+      const c = new Float32Array(this.W), s = new Float32Array(this.W);
+      for (let n = 0; n < this.W; n++) {
+        const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (n + 0.5) / this.W);
+        c[n] = w * Math.cos(2 * Math.PI * f * n / sr); s[n] = w * Math.sin(2 * Math.PI * f * n / sr);
+      }
+      return [c, s];
+    };
+    this.sigT = this.sigF.map(mk); this.refT = this.refF.map(mk);
+    this.wsum = this.W / 2;
+    // кольцевые буферы по бинам (10 мс)
+    this.R = 2048;
+    this.P = new Float64Array(this.R); this.X = new Float64Array(this.R); this.Nr = new Float64Array(this.R);
+    this.S = new Float64Array(this.R).fill(-99); this.L = new Float64Array(this.R).fill(-200);
+    this.b = 0;                 // число готовых бинов
+    this.buf = new Float32Array(0); this.bufStart = 0;
+    this.nMed = 0;
+    // шаблон в бинах
+    const toBins = arr => { const out = []; arr.forEach(([a, z]) => { for (let m = a; m < z; m += 10) out.push(Math.round(m / 10)); }); return out; };
+    this.onB = toBins(this.p.on);
+    this.pulseB = this.p.on.map(o => toBins([o]));
+    const burstEnd = Math.max(...this.p.on.map(o => o[1]));
+    this.offB = toBins(this.p.gaps).concat(toBins([[-350, -60]]), toBins([[burstEnd + 70, burstEnd + 450]]));
+    this.preB = 35; this.postB = Math.ceil((burstEnd + 450) / 10);
+    this.burstLenSec = burstEnd / 1000;
+    // накопление по периоду
+    this.NK = Math.round(this.p.periodSec / 0.01);
+    this.F = new Float64Array(this.NK); this.Fn = new Uint16Array(this.NK);
+    this.fold = { score: -99, shift: 0, periods: 0 };
+    // захват фазы
+    this.locked = false; this.phase = 0; this.miss = 0; this.nextExp = null; this.lastS = 0;
+    this.events = [];
+  }
+
+  get time() { return this.b * 0.01; }
+
+  push(x) {
+    const nb = new Float32Array(this.buf.length + x.length);
+    nb.set(this.buf); nb.set(x, this.buf.length); this.buf = nb;
+    let pos = 0;
+    while (pos + this.W <= this.buf.length) { this._bin(this.buf, pos); pos += this.H; }
+    this.buf = this.buf.slice(pos);
+    const ev = this.events; this.events = []; return ev;
+  }
+
+  _amp2(x, pos, [c, s]) {
+    let re = 0, im = 0;
+    for (let n = 0; n < this.W; n++) { const v = x[pos + n]; re += v * c[n]; im += v * s[n]; }
+    const a = 2 * Math.hypot(re, im) / this.wsum; return a * a;
+  }
+
+  _bin(x, pos) {
+    let ps = 0; for (const t of this.sigT) ps = Math.max(ps, this._amp2(x, pos, t));
+    let pr = 0; for (const t of this.refT) pr += this._amp2(x, pos, t); pr /= this.refT.length;
+    const b = this.b, i = b % this.R;
+    this.P[i] = ps; this.Nr[i] = pr;
+    if (b % 50 === 0) {               // медиана шума за 3 с
+      const n = Math.min(b + 1, 300), arr = new Float64Array(n);
+      for (let k = 0; k < n; k++) arr[k] = this.Nr[(b - k) % this.R];
+      arr.sort(); this.nMed = arr[n >> 1];
+    }
+    const xv = ps / (pr + this.nMed + 1e-10);   // щелчки поднимают и соседние полосы; пол −100 dBFS
+    this.X[i] = xv;
+    // накопление по периоду (время по номеру бина)
+    const k = Math.floor(((b * 0.01) % this.p.periodSec) / 0.01) % this.NK;
+    this.Fn[k] = Math.min(this.Fn[k] + 1, 4);
+    this.F[k] += (Math.log10(xv + 1e-6) - this.F[k]) / this.Fn[k];   // логарифм — устойчиво к всплескам
+    this.b++;
+    if (b % 25 === 0 && b > this.NK) this._evalFold();
+    this._evalTemplate();
+  }
+
+  _score(tau) {   // tau — бин начала пачки
+    let off = 0, pon = 0, poff = 0;
+    // по каждому импульсу отдельно; берём второй с конца — нужны минимум 3 из 4
+    const pm = this.pulseB.map(bins => { let a = 0; for (const o of bins) { const j = (tau + o) % this.R; a += this.X[j]; pon += this.P[j]; } return a / bins.length; });
+    pm.sort((a, b) => a - b);
+    const on = pm[Math.min(1, pm.length - 1)];
+    for (const o of this.offB) { const j = (tau + o + this.R) % this.R; off += this.X[j]; poff += this.P[j]; }
+    off /= this.offB.length; pon /= this.onB.length; poff /= this.offB.length;
+    return { s: 10 * Math.log10((on + 1e-3) / (off + 1e-3)), l: 10 * Math.log10(Math.max(pon - poff, pon * 0.05, 1e-20)) };
+  }
+
+  _evalFold() {
+    const NK = this.NK; let best = -99, bs = 0;
+    for (let s = 0; s < NK; s++) {
+      let on = 0, off = 0;
+      for (const o of this.onB) on += this.F[(s + o) % NK];
+      for (const o of this.offB) off += this.F[((s + o) % NK + NK) % NK];
+      const v = 10 * (on / this.onB.length - off / this.offB.length);   // F в log10 → dB
+      if (v > best) { best = v; bs = s; }
+    }
+    this.fold = { score: best, shift: bs, periods: Math.floor(this.b / NK) };
+    if (!this.locked && best >= this.Tfold && this.fold.periods >= 3) {
+      // ближайшая будущая пачка по фазе накопления
+      const T = this.p.periodSec;
+      let t = bs * 0.01 + Math.floor(this.time / T) * T;
+      while (t * 100 < this.b - this.postB) t += T;
+      this._lock(t, 'fold');
+    }
+  }
+
+  _lock(tStart, why) {
+    this.locked = true; this.miss = 0; this.lockWhy = why;
+    this.nextExp = tStart;
+  }
+
+  _emit(tau, sc, kind) {
+    this.events.push({ t: tau * 0.01, scoreDb: sc.s, levelDb: sc.l, kind, strong: sc.s >= this.T1 });
+  }
+
+  _evalTemplate() {
+    const tau = this.b - 1 - this.postB;
+    if (tau < this.preB) return;
+    const sc = this._score(tau);
+    this.S[tau % this.R] = sc.s; this.L[tau % this.R] = sc.l;
+    const c = tau - 20;                 // проверяем локальный максимум с задержкой 200 мс
+    if (c < this.preB + 20) return;
+    const sC = this.S[c % this.R];
+    const T = this.p.periodSec;
+
+    if (this.locked) {
+      const e = Math.round(this.nextExp * 100);
+      if (c >= e + 6) {                // окно ожидания ±6 бинов закрылось
+        let bi = e - 6, bv = -99;
+        for (let j = e - 6; j <= e + 6; j++) if (this.S[j % this.R] > bv) { bv = this.S[j % this.R]; bi = j; }
+        const sc2 = { s: bv, l: this.L[bi % this.R] };
+        if (bv >= this.Tweak) {
+          this._emit(bi, sc2, 'expected'); this.miss = 0; this.lastS = bv;
+          this.nextExp = (bv >= 6 ? bi * 0.01 : this.nextExp) + T;
+        } else {
+          this.miss++; this.nextExp += T;
+          this.events.push({ t: e * 0.01, scoreDb: bv, levelDb: null, kind: 'miss' });
+          if (this.miss >= 4 && this.fold.score < this.Tfold) { this.locked = false; this.events.push({ t: e * 0.01, kind: 'lost' }); }
+        }
+        return;
+      }
+      // сильная пачка вне ожидаемой фазы — перезахват
+      if (sC >= this.T1 + 3 && (this.miss >= 1 || sC >= this.lastS + 3) && Math.abs(c - e) > 15 && Math.abs(c - (e - this.NK)) > 15 && this._isPeak(c)) {
+        this._emit(c, { s: sC, l: this.L[c % this.R] }, 'relock'); this.lastS = sC;
+        this._lock(c * 0.01 + T, 'relock');
+      }
+      return;
+    }
+    if (sC >= this.T1 && this._isPeak(c)) {
+      this._emit(c, { s: sC, l: this.L[c % this.R] }, 'single'); this.lastS = sC;
+      this._lock(c * 0.01 + T, 'single');
+    }
+  }
+
+  _isPeak(c) {
+    const v = this.S[c % this.R];
+    for (let j = c - 20; j <= c + 20; j++) if (j !== c && this.S[j % this.R] > v) return false;
+    return true;
+  }
+
+  nextBurstIn() { return this.locked ? this.nextExp - this.time : null; }
+}
+
+if (typeof module !== 'undefined') module.exports = { BeepDetector, DEFAULT_PROFILE };
+
 </script>
 <script>
 (() => {
@@ -400,6 +643,7 @@ if (typeof module !== 'undefined') module.exports = Analysis;
 
   async function start() {
     msg('');
+    window.searchStopIfActive && window.searchStopIfActive();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       msg('Браузер не даёт доступ к микрофону. Страница должна открываться по https (GitHub Pages подходит).', 'err'); return;
     }
@@ -551,6 +795,20 @@ if (typeof module !== 'undefined') module.exports = Analysis;
       ['specCanvas', 'envCanvas', 'zoomCanvas'].forEach(id => clearCanvas($(id)));
       return;
     }
+    try {
+      const det = new BeepDetector(lastSr, { f0: r.tone.f0 });
+      const lv = [], ts = [];
+      for (let i = 0; i < lastSamples.length; i += 4096) det.push(lastSamples.subarray(i, i + 4096)).forEach(ev => { if (ev.levelDb !== null && ev.levelDb !== undefined && ev.strong) { lv.push(ev.levelDb); ts.push(ev.t); } });
+      const bp = r.bursts.burstPeriodSec;
+      const prof = { version: 2, f0: r.tone.f0, refDistanceM: +$('dist').value || 1, created: new Date().toISOString() };
+      if (lv.length >= 2) prof.refLevelDb = Analysis.median(lv);
+      if (ts.length >= 4 && bp && bp.median > 1 && bp.median < 10) {
+        const span = ts[ts.length - 1] - ts[0], k = Math.round(span / bp.median);
+        if (k >= 3) prof.periodSec = span / k;   // точнее медианы: по первой и последней пачке
+      }
+      localStorage.setItem('catBeepSearchProfile', JSON.stringify(prof));
+      rep.searchProfile = prof; $('jsonOut').textContent = JSON.stringify(rep, null, 2);
+    } catch (_) {}
     try { localStorage.setItem('catBeepProfile', JSON.stringify({
       f0: r.tone.f0, fMin: r.tone.fMin, fMax: r.tone.fMax, harmonics: r.tone.harmonics,
       pulseMs: r.pulses.durationMs, intraGapMs: r.bursts.intraGapMs, pulsePeriodMs: r.bursts.pulsePeriodMs,
@@ -718,7 +976,327 @@ if (typeof module !== 'undefined') module.exports = Analysis;
   };
   $('btnStart').onclick = start;
   $('btnStop').onclick = stop;
+  window.trainStopIfActive = () => { if (recording) stop(); };
   window.addEventListener('resize', () => { if (wf && recording) setupWaterfall(); });
+})();
+</script>
+<script>
+// ===== Вкладка поиска =====
+(() => {
+  const $ = id => document.getElementById(id);
+  const NSEC = 12, SEC = 360 / NSEC;
+  let ctx, stream, src, capNode, sink, det, wakeLock, running = false, raf = 0;
+  let profile = loadProfile();
+  let events = [];                 // все события детектора (с уровнем)
+  let sectors = [];                // по 12 секторов: массив уровней
+  let consecutive = 0, lastGood = null, lastStrong = null;
+  let timeOffset = null;           // perf_sec - det_time
+  // ориентация
+  let heading = null, heading0 = null, headHist = [], gyroOk = null;
+
+  function loadProfile() {
+    let p = {};
+    try { p = JSON.parse(localStorage.getItem('catBeepSearchProfile') || '{}') || {}; } catch (_) {}
+    return Object.assign({}, DEFAULT_PROFILE, p);
+  }
+
+  const WORKLET = `
+    class Cap extends AudioWorkletProcessor {
+      constructor() { super(); this.buf = new Float32Array(2048); this.n = 0; }
+      process(inputs) {
+        const ch = inputs[0] && inputs[0][0];
+        if (ch) for (let i = 0; i < ch.length; i++) {
+          this.buf[this.n++] = ch[i];
+          if (this.n === this.buf.length) { this.port.postMessage(this.buf); this.buf = new Float32Array(2048); this.n = 0; }
+        }
+        return true;
+      }
+    }
+    registerProcessor('cap2', Cap);`;
+
+  function msg(t, cls = 'warn') { $('sMsg').innerHTML = t ? `<div class="status ${cls}">${t}</div>` : ''; }
+
+  // ---------- ориентация (гироскоп, без компаса) ----------
+  function onOrient(e) {
+    if (e.alpha === null || e.beta === null || e.gamma === null) { if (gyroOk === null) gyroOk = false; return; }
+    gyroOk = true;
+    const d = Math.PI / 180, a = e.alpha * d, b = e.beta * d, g = e.gamma * d;
+    const cA = Math.cos(a), sA = Math.sin(a), cB = Math.cos(b), sB = Math.sin(b), cG = Math.cos(g), sG = Math.sin(g);
+    // верх телефона (ось y) и «спина» телефона (−z) в мировых координатах, проекция на горизонт
+    const yx = -sA * cB, yy = cA * cB;
+    const zx = -(cA * sG + sA * sB * cG), zy = -(sA * sG - cA * sB * cG);
+    const vx = yx + zx, vy = yy + zy;
+    if (Math.hypot(vx, vy) < 0.2) return;            // телефон смотрит вверх/вниз — направление неопределённо
+    heading = (Math.atan2(vx, vy) / d + 360) % 360;   // по часовой
+    const now = performance.now() / 1000;
+    headHist.push([now, heading]);
+    while (headHist.length && headHist[0][0] < now - 15) headHist.shift();
+  }
+  function circMean(arr) {
+    let sx = 0, sy = 0; arr.forEach(h => { sx += Math.sin(h * Math.PI / 180); sy += Math.cos(h * Math.PI / 180); });
+    const r = Math.hypot(sx, sy) / Math.max(arr.length, 1);
+    return { mean: (Math.atan2(sx, sy) * 180 / Math.PI + 360) % 360, spread: Math.sqrt(-2 * Math.log(Math.max(r, 1e-6))) * 180 / Math.PI };
+  }
+  const rel = h => ((h - heading0) % 360 + 360) % 360;
+  const signed = a => { a = ((a % 360) + 360) % 360; return a > 180 ? a - 360 : a; };
+
+  async function enableOrientation() {
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') { gyroOk = false; return; }
+      }
+    } catch (_) {}
+    window.addEventListener('deviceorientation', onOrient);
+    setTimeout(() => { if (gyroOk !== true) gyroOk = false; }, 2500);
+  }
+
+  // ---------- старт / стоп ----------
+  async function start() {
+    msg('');
+    window.trainStopIfActive && window.trainStopIfActive();
+    profile = loadProfile();
+    await enableOrientation();
+    if (!navigator.mediaDevices?.getUserMedia) { msg('Браузер не даёт доступ к микрофону. Откройте страницу по https в Chrome.', 'err'); return; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1,
+        googEchoCancellation: false, googNoiseSuppression: false, googAutoGainControl: false, googHighpassFilter: false } });
+    } catch (e) { msg('Нет доступа к микрофону: ' + e.message, 'err'); return; }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+    src = ctx.createMediaStreamSource(stream);
+    sink = ctx.createGain(); sink.gain.value = 0; sink.connect(ctx.destination);
+    try {
+      await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
+      capNode = new AudioWorkletNode(ctx, 'cap2', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
+      capNode.port.onmessage = e => onChunk(e.data);
+    } catch (_) {
+      capNode = ctx.createScriptProcessor(2048, 1, 1);
+      capNode.onaudioprocess = e => onChunk(new Float32Array(e.inputBuffer.getChannelData(0)));
+    }
+    src.connect(capNode); capNode.connect(sink);
+    const tr = stream.getAudioTracks()[0];
+    const set = tr.getSettings ? tr.getSettings() : {};
+    if (set.noiseSuppression || set.autoGainControl) msg('Телефон не отключил шумоподавление/автоусиление — уровни могут быть неточными.', 'warn');
+    det = new BeepDetector(ctx.sampleRate, profile);
+    det.micSettings = set;
+    events = []; consecutive = 0; lastGood = lastStrong = null; timeOffset = null;
+    resetSweep();
+    running = true;
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) {}
+    $('sStart').classList.add('hidden'); $('sStop').classList.remove('hidden');
+    loop();
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false; cancelAnimationFrame(raf);
+    try { src.disconnect(); capNode.disconnect(); } catch (_) {}
+    stream?.getTracks().forEach(t => t.stop());
+    try { wakeLock?.release(); } catch (_) {}
+    ctx?.close();
+    $('sStop').classList.add('hidden'); $('sStart').classList.remove('hidden');
+    setStatus('idle');
+  }
+  window.searchStopIfActive = stop;
+
+  function resetSweep() {
+    sectors = Array.from({ length: NSEC }, () => []);
+    heading0 = heading;
+    drawRadar();
+  }
+
+  // ---------- обработка звука ----------
+  function onChunk(x) {
+    if (!running) return;
+    const evs = det.push(x);
+    const off = performance.now() / 1000 - det.time;
+    timeOffset = timeOffset === null ? off : Math.min(timeOffset + 0.002, off);   // минимальная задержка
+    evs.forEach(handleEvent);
+  }
+
+  function handleEvent(e) {
+    if (e.kind === 'miss') { consecutive = 0; return; }
+    if (e.kind === 'lost') { consecutive = 0; return; }
+    e.wall = e.t + timeOffset;
+    consecutive++;
+    lastGood = e;
+    if (e.strong) lastStrong = e;
+    // направление во время пачки
+    if (gyroOk && heading0 !== null && e.scoreDb >= 8) {   // направление — только по чётким пачкам
+      const hs = headHist.filter(([t]) => t >= e.wall - 0.05 && t <= e.wall + det.burstLenSec + 0.05).map(v => v[1]);
+      if (hs.length >= 3) {
+        const cm = circMean(hs);
+        e.heading = cm.mean; e.spread = cm.spread;
+        if (cm.spread < 25) {
+          const k = Math.floor(((rel(cm.mean) + SEC / 2) % 360) / SEC);
+          sectors[k].push(e.levelDb); if (sectors[k].length > 4) sectors[k].shift();
+        }
+      }
+    } else if (gyroOk && heading0 === null && heading !== null) { heading0 = heading; }
+    events.push(e);
+    if (events.length > 200) events.shift();
+    try { navigator.vibrate?.(e.strong ? 120 : 40); } catch (_) {}
+    updateLevel();
+    drawSpark();
+  }
+
+  // ---------- статус ----------
+  function setStatus(kind, t2 = '') {
+    const st = $('st');
+    st.className = 'st ' + ({ yes: 'yes', maybe: 'maybe' }[kind] || 'no');
+    const m = { idle: ['🔇', 'Не слушаю'], none: ['👂', 'Не слышу'], maybe: ['🤔', 'Слышу слабо'], yes: ['🐈', 'Слышу ошейник'] }[kind];
+    $('stIc').textContent = m[0]; $('stT1').textContent = m[1];
+    $('stT2').textContent = t2 || (kind === 'idle' ? 'Нажмите «Слушать» и включите писк в приложении ошейника' : '');
+    $('stCd').classList.toggle('hidden', kind === 'idle' || kind === 'none');
+  }
+
+  function updateStatus() {
+    const now = det.time;
+    const ago = e => e ? now - e.t : Infinity;
+    const P = profile.periodSec;
+    let kind = 'none', t2 = 'Слушаю… Пачка писка приходит раз в 3 секунды.';
+    if (ago(lastStrong) < 2.5 * P) {
+      kind = 'yes'; t2 = `пачек подряд: ${consecutive} · чёткость ${lastGood.scoreDb.toFixed(0)} dB`;
+    } else if (det.locked || ago(lastGood) < 4 * P) {
+      kind = 'maybe'; t2 = !lastGood ? 'накопился слабый ритм писка — подождите ещё пару пачек' : 'на грани слышимости — уровень и направление неточные';
+    } else if (det.time > 2 * P) {
+      t2 = 'Слушаю… Ни одной пачки с нужным ритмом. Включите писк или подойдите ближе.';
+    }
+    setStatus(kind, t2);
+    let nb = det.nextBurstIn();
+    if (nb !== null) while (nb <= -det.burstLenSec) nb += P;   // пачка уже прошла, но ещё обрабатывается
+    if (nb !== null && kind !== 'none') {
+      const inBurst = nb < 0 && nb > -det.burstLenSec;
+      $('stCdV').textContent = inBurst ? 'пищит' : `${Math.max(0, nb).toFixed(1)} с`;
+    }
+  }
+
+  function updateLevel() {
+    const lv = events.filter(e => e.levelDb !== null && e.levelDb !== undefined);
+    if (!lv.length) return;
+    const mean = a => 10 * Math.log10(a.reduce((s, e) => s + Math.pow(10, e.levelDb / 10), 0) / a.length);
+    const cur = mean(lv.slice(-2));
+    $('lvl').textContent = cur.toFixed(0) + ' dB';
+    const prev = lv.slice(-5, -2);
+    if (prev.length) {
+      const d = cur - mean(prev);
+      $('lvlD').textContent = Math.abs(d) < 2 ? '≈' : (d > 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(0);
+      $('lvlD').className = 'delta ' + (d >= 2 ? 'up' : d <= -2 ? 'down' : '');
+      $('lvlS').textContent = d >= 2 ? 'громче — теплее' : d <= -2 ? 'тише — холоднее' : 'примерно так же';
+    }
+    const ref = profile.refLevelDb ?? -46.5, rd = profile.refDistanceM || 1;
+    const dm = rd * Math.pow(10, (ref - cur) / 20);
+    const r1 = Math.max(0.5, dm / 2.5), r2 = dm * 2.5;
+    const f = v => v < 10 ? v.toFixed(v < 2 ? 1 : 0) : (Math.round(v / 5) * 5).toFixed(0);
+    $('dist2').textContent = dm < 0.7 ? 'рядом' : `${f(r1)}–${f(r2)} м`;
+  }
+
+  // ---------- радар ----------
+  const NS = 'http://www.w3.org/2000/svg';
+  function drawRadar() {
+    const s = $('radar'); while (s.firstChild) s.removeChild(s.firstChild);
+    const el = (t, a, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt) e.textContent = txt; s.appendChild(e); return e; };
+    const cx = 150, cy = 152, R = 118;
+    const cur = (heading !== null && heading0 !== null) ? rel(heading) : 0;
+    const pt = (ang, r) => [cx + r * Math.sin(ang * Math.PI / 180), cy - r * Math.cos(ang * Math.PI / 180)];
+    [40, 80, R].forEach(r => el('circle', { cx, cy, r, fill: 'none', stroke: '#30363d', 'stroke-width': 1 }));
+    const vals = sectors.map(a => a.length ? 10 * Math.log10(a.reduce((x, v) => x + Math.pow(10, v / 10), 0) / a.length) : null);
+    const vis = vals.filter(v => v !== null);
+    const vmax = vis.length ? Math.max(...vis) : 0;
+    let best = -1;
+    vals.forEach((v, i) => {
+      const a0 = i * SEC - SEC / 2 - cur, a1 = a0 + SEC;
+      const r = v === null ? R : 18 + (R - 18) * Math.max(0, Math.min(1, (v - (vmax - 20)) / 20));
+      const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r);
+      const d = `M${cx},${cy}L${x0},${y0}A${r},${r} 0 0 1 ${x1},${y1}Z`;
+      if (v === null) el('path', { d, fill: 'none', stroke: '#6e7681', 'stroke-dasharray': '4 4', 'stroke-width': 1 });
+      else {
+        el('path', { d, fill: '#f5b301', 'fill-opacity': (0.25 + 0.65 * (r - 18) / (R - 18)).toFixed(2), stroke: '#0d1117', 'stroke-width': 1.5 });
+        if (best < 0 || v > vals[best]) best = i;
+      }
+    });
+    // стрелка, если направление выражено
+    let label = vis.length ? 'послушайте ещё направления' : (gyroOk === false ? '' : (lastGood && !lastStrong ? 'сигнал слишком слабый для направления' : 'поворачивайтесь медленно'));
+    if (vis.length >= 3 && best >= 0) {
+      const others = vals.filter((v, i) => v !== null && i !== best).sort((a, b) => a - b);
+      const med = others[others.length >> 1];
+      if (vals[best] - med >= 6) {
+        const ang = best * SEC - cur;
+        const [ax, ay] = pt(ang, R - 6), [hx, hy] = pt(ang, R + 4), [lx, ly] = pt(ang - 7, R - 12), [rx, ry] = pt(ang + 7, R - 12);
+        el('line', { x1: cx, y1: cy, x2: ax, y2: ay, stroke: '#f85149', 'stroke-width': 3.5, 'stroke-linecap': 'round' });
+        el('path', { d: `M${hx},${hy}L${lx},${ly}L${rx},${ry}Z`, fill: '#f85149' });
+        const sa = Math.round(signed(ang) / 10) * 10;
+        label = Math.abs(sa) <= 15 ? 'громче прямо впереди' : Math.abs(sa) >= 160 ? 'громче сзади' : `громче ~${Math.abs(sa)}° ${sa > 0 ? 'вправо' : 'влево'}`;
+      } else if (vis.length >= 5) label = 'направление неясно — возможно, рядом или эхо';
+    }
+    $('radarLbl').textContent = label;
+    el('path', { d: `M${cx},${cy - R - 8}L${cx - 7},${cy - R + 5}L${cx + 7},${cy - R + 5}Z`, fill: '#e6edf3' });
+    el('text', { x: cx, y: 12, 'text-anchor': 'middle', 'font-size': 11, fill: '#8b949e' }, 'вы смотрите сюда');
+    el('circle', { cx, cy, r: 5, fill: '#e6edf3' });
+    const g = $('gyroMsg');
+    if (gyroOk === false) { g.textContent = 'Гироскоп недоступен в этом браузере — радар не работает, но «горячо/холодно» по уровню работает.'; g.classList.remove('hidden'); }
+    else g.classList.add('hidden');
+  }
+
+  // ---------- график уровня ----------
+  function drawSpark() {
+    const cv = $('spark'); const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const H = 110, W = cv.clientWidth || 300;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    if (!det) return;
+    const now = det.time, span = 120;
+    const pts = events.filter(e => e.levelDb !== null && e.levelDb !== undefined && now - e.t <= span);
+    if (!pts.length) { g.fillStyle = '#8b949e'; g.font = '12px system-ui'; g.fillText('пока нет пачек', 10, 20); return; }
+    let lo = Math.min(...pts.map(e => e.levelDb)) - 5, hi = Math.max(...pts.map(e => e.levelDb)) + 5;
+    if (hi - lo < 20) { const m = (hi + lo) / 2; lo = m - 10; hi = m + 10; }
+    const X = t => 30 + (1 - (now - t) / span) * (W - 36), Y = v => 6 + (hi - v) / (hi - lo) * (H - 22);
+    g.strokeStyle = '#222'; g.fillStyle = '#8b949e'; g.font = '11px system-ui';
+    for (let v = Math.ceil(lo / 10) * 10; v <= hi; v += 10) { g.beginPath(); g.moveTo(30, Y(v)); g.lineTo(W - 4, Y(v)); g.stroke(); g.fillText(v, 2, Y(v) + 4); }
+    g.fillText('−2 мин', 30, H - 3); g.textAlign = 'right'; g.fillText('сейчас', W - 4, H - 3); g.textAlign = 'left';
+    g.strokeStyle = '#58a6ff'; g.lineWidth = 1.5; g.beginPath();
+    pts.forEach((e, i) => i ? g.lineTo(X(e.t), Y(e.levelDb)) : g.moveTo(X(e.t), Y(e.levelDb))); g.stroke();
+    pts.forEach(e => { g.fillStyle = e.strong ? '#3fb950' : '#f5b301'; g.beginPath(); g.arc(X(e.t), Y(e.levelDb), 3.5, 0, 7); g.fill(); });
+  }
+
+  // ---------- цикл экрана ----------
+  let lastDraw = 0;
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    const t = performance.now();
+    if (t - lastDraw < 66) return; lastDraw = t;
+    if (heading0 === null && heading !== null) heading0 = heading;
+    updateStatus();
+    drawRadar();
+    const f = det.fold;
+    $('dbg').innerHTML = [
+      `время ${det.time.toFixed(1)} с · частота ${profile.f0.toFixed(0)} Гц · период ${profile.periodSec.toFixed(3)} с`,
+      `захват: ${det.locked ? 'да (' + det.lockWhy + ')' : 'нет'} · след. пачка: ${det.nextBurstIn() === null ? '—' : det.nextBurstIn().toFixed(2) + ' с'}`,
+      `накопление: ${f.score.toFixed(1)} dB (порог ${det.Tfold}) · периодов ${f.periods}`,
+      `последняя пачка: ${lastGood ? lastGood.kind + ', чёткость ' + lastGood.scoreDb.toFixed(1) + ' dB, уровень ' + lastGood.levelDb.toFixed(1) + ' dB' : '—'}`,
+      `шум рядом с частотой: ${(10 * Math.log10(det.nMed + 1e-20)).toFixed(0)} dB · опорный уровень ${(profile.refLevelDb ?? -46.5).toFixed(1)} dB на ${profile.refDistanceM} м`,
+      `гироскоп: ${gyroOk === null ? 'ждём' : gyroOk ? 'есть' : 'нет'} · курс ${heading === null ? '—' : (heading0 === null ? heading : rel(heading)).toFixed(0) + '°'}`,
+      `микрофон: ${JSON.stringify(det.micSettings || {})}`,
+    ].join('<br>');
+  }
+
+  // ---------- вкладки ----------
+  function showTab(which) {
+    $('tabSearch').classList.toggle('hidden', which !== 'search');
+    $('tabTrain').classList.toggle('hidden', which !== 'train');
+    $('tabBtnSearch').classList.toggle('on', which === 'search');
+    $('tabBtnTrain').classList.toggle('on', which === 'train');
+    if (which === 'train') stop();
+    else { window.trainStopIfActive && window.trainStopIfActive(); profile = loadProfile(); }
+  }
+  $('tabBtnSearch').onclick = () => showTab('search');
+  $('tabBtnTrain').onclick = () => showTab('train');
+  $('sStart').onclick = start;
+  $('sStop').onclick = stop;
+  $('sReset').onclick = resetSweep;
+  drawRadar(); drawSpark();
 })();
 </script>
 </body>
