@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐈</text></svg>">
+<title>Писк ошейника — обучение</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --accent: #f5b301; --ok: #3fb950; --bad: #f85149; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 14px 60px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 14px 0; }
+  ol { padding-left: 20px; margin: 6px 0; } li { margin: 3px 0; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button, .btn { appearance: none; border: 0; border-radius: 10px; padding: 14px 18px; font: inherit; font-weight: 600;
+    background: #21262d; color: var(--text); border: 1px solid var(--line); cursor: pointer; text-decoration: none; display: inline-block; }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); }
+  button.stop { background: var(--bad); color: #fff; border-color: var(--bad); }
+  button:disabled { opacity: .45; cursor: default; }
+  .big { flex: 1 1 100%; font-size: 18px; padding: 18px; }
+  label { font-size: 14px; color: var(--muted); }
+  input[type=number] { width: 80px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+  canvas { width: 100%; display: block; border-radius: 8px; background: #000; }
+  .live-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .readout { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; }
+  .readout small { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .meter { height: 12px; background: #000; border-radius: 6px; overflow: hidden; margin: 6px 0 10px; }
+  .meter > div { height: 100%; width: 0; background: var(--accent); transition: width .08s; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .card .k { font-size: 13px; color: var(--muted); }
+  .card .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card .s { font-size: 13px; color: var(--muted); }
+  .status { padding: 10px 12px; border-radius: 10px; margin: 10px 0; font-size: 15px; }
+  .status.warn { background: #3d2e00; border: 1px solid #6e5400; }
+  .status.err  { background: #3d1214; border: 1px solid #8e1519; }
+  .status.good { background: #0f2e17; border: 1px solid #1f6f30; }
+  .settings { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .settings b.bad { color: var(--bad); } .settings b.ok { color: var(--ok); }
+  pre { white-space: pre-wrap; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; }
+  .hidden { display: none !important; }
+  .legend { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; }
+  .legend i:first-child { margin-left: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🐈 Писк ошейника: обучение</h1>
+  <p class="muted">Страница записывает писк, находит точную частоту и ритм и сохраняет «профиль» для будущего режима поиска. Всё считается на телефоне, звук никуда не отправляется.</p>
+
+  <div class="panel">
+    <h2>Как записать</h2>
+    <ol>
+      <li>Положите ошейник примерно в <b>1 метре</b> от телефона, в тихой комнате.</li>
+      <li>Нажмите «Начать запись» и разрешите доступ к микрофону.</li>
+      <li>Включите писк в приложении ошейника.</li>
+      <li>Дайте пищать до конца (или хотя бы 30–60 секунд), потом нажмите «Стоп и анализ».</li>
+    </ol>
+    <div class="row" style="margin-top:10px">
+      <label>Расстояние до ошейника, м <input id="dist" type="number" value="1" min="0.1" step="0.1"></label>
+      <label>Макс. длительность, с <input id="maxdur" type="number" value="120" min="10" max="300" step="10"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnStart" class="primary big">🎙 Начать запись</button>
+      <button id="btnStop" class="stop big hidden">■ Стоп и анализ</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="btn" style="font-weight:500">📂 Проанализировать готовый файл…
+        <input id="fileIn" type="file" accept="audio/*,.wav,.m4a,.mp3,.ogg,.aac,.amr,.3gp" class="hidden">
+      </label>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div id="livePanel" class="panel hidden">
+    <div class="live-top">
+      <h2 style="margin:0">Сейчас слышу</h2>
+      <span class="muted" id="recTime">0.0 с</span>
+    </div>
+    <div class="readout" id="liveFreq">— <small>Гц</small></div>
+    <div class="muted" id="liveProm">выделенность пика: —</div>
+    <div class="meter"><div id="liveMeter"></div></div>
+    <canvas id="waterfall" height="260"></canvas>
+    <p class="legend">Водопад: по горизонтали частота 0–16 кГц, новое сверху. Писк должен выглядеть как яркие вертикальные чёрточки около 4 кГц.</p>
+    <div class="settings" id="micSettings"></div>
+  </div>
+
+  <div id="resultPanel" class="hidden">
+    <div class="panel">
+      <h2>Результат</h2>
+      <div id="verdict"></div>
+      <div class="grid" id="cards"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Спектр</h2>
+      <canvas id="specCanvas" height="240"></canvas>
+      <p class="legend"><i style="background:#f5b301"></i>во время писка <i style="background:#8b949e"></i>тишина/фон <i style="background:#58a6ff"></i>гармоники</p>
+    </div>
+
+    <div class="panel">
+      <h2>Вся запись: громкость на частоте писка</h2>
+      <canvas id="envCanvas" height="200"></canvas>
+      <p class="legend"><i style="background:#f5b301"></i>уровень <i style="background:#3fb950"></i>найденные импульсы <i style="background:#f85149"></i>порог</p>
+      <h2 style="margin-top:16px">Одна пачка крупно</h2>
+      <canvas id="zoomCanvas" height="180"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Сохранить и отправить</h2>
+      <p class="muted">Профиль уже сохранён в этом браузере для режима поиска. Чтобы прислать данные мне в чат, скачайте оба файла.</p>
+      <div class="row" style="margin-top:8px">
+        <button id="btnWav">⬇ Запись (WAV)</button>
+        <button id="btnJson">⬇ Отчёт (JSON)</button>
+        <button id="btnCopy">📋 Копировать сводку</button>
+      </div>
+      <details style="margin-top:12px"><summary class="muted">Показать отчёт</summary><pre id="jsonOut"></pre></details>
+    </div>
+  </div>
+</main>
+
+<script>
+// ===== Анализ записи писка (чистые функции, без DOM) =====
+const Analysis = (() => {
+
+  function fft(re, im) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let k = 0; k < len / 2; k++) {
+          const a = i + k, b = a + len / 2;
+          const xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
+          re[b] = re[a] - xr; im[b] = im[a] - xi;
+          re[a] += xr; im[a] += xi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+  }
+
+  const pct = (arr, p) => {
+    if (!arr.length) return NaN;
+    const s = Float64Array.from(arr).sort();
+    const idx = Math.min(s.length - 1, Math.max(0, Math.round((s.length - 1) * p)));
+    return s[idx];
+  };
+  const median = a => pct(a, 0.5);
+  const db = x => 20 * Math.log10(Math.max(x, 1e-12));
+
+  // STFT: для каждого кадра — спектр в dB (амплитуда синуса 1.0 => 0 dBFS)
+  function stft(x, sr, N = 4096, hop = 1024) {
+    const win = new Float64Array(N);
+    let wsum = 0;
+    for (let i = 0; i < N; i++) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N); wsum += win[i]; }
+    const frames = [];
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let s = 0; s + N <= x.length; s += hop) {
+      for (let i = 0; i < N; i++) { re[i] = x[s + i] * win[i]; im[i] = 0; }
+      fft(re, im);
+      const mag = new Float32Array(N / 2);
+      for (let k = 0; k < N / 2; k++) mag[k] = db(2 * Math.hypot(re[k], im[k]) / wsum);
+      frames.push({ t: (s + N / 2) / sr, mag });
+    }
+    return { frames, N, hop, binHz: sr / N };
+  }
+
+  function findTone(spec, fLo = 1000, fHi = 10000) {
+    const { frames, binHz } = spec;
+    const kLo = Math.ceil(fLo / binHz), kHi = Math.floor(fHi / binHz);
+    const rows = frames.map(fr => {
+      let best = kLo;
+      for (let k = kLo; k <= kHi; k++) if (fr.mag[k] > fr.mag[best]) best = k;
+      const band = Array.from(fr.mag.subarray(kLo, kHi + 1));
+      const floor = median(band);
+      const a = fr.mag[best - 1], b = fr.mag[best], c = fr.mag[best + 1];
+      const d = (a - c) / (2 * (a - 2 * b + c) || 1);
+      return { t: fr.t, f: (best + (isFinite(d) ? d : 0)) * binHz, level: b, prom: b - floor };
+    });
+    const tone = rows.filter(r => r.prom > 18);
+    if (tone.length < 2) return { found: false, rows };
+    // доминирующая частота: гистограмма с шагом 50 Гц
+    const hist = new Map();
+    tone.forEach(r => { const key = Math.round(r.f / 50); hist.set(key, (hist.get(key) || 0) + 1); });
+    let bestKey = null, bestCnt = 0;
+    for (const [k, c] of hist) {
+      const cnt = c + (hist.get(k - 1) || 0) + (hist.get(k + 1) || 0);
+      if (cnt > bestCnt) { bestCnt = cnt; bestKey = k; }
+    }
+    const sel = tone.filter(r => Math.abs(r.f - bestKey * 50) <= 150);
+    const fs = sel.map(r => r.f);
+    return {
+      found: true, rows,
+      f0: median(fs), fMin: pct(fs, 0.05), fMax: pct(fs, 0.95),
+      toneFrames: sel.length, peakLevel: pct(sel.map(r => r.level), 0.95),
+      prominence: median(sel.map(r => r.prom)),
+    };
+  }
+
+  // Средние спектры: кадры с писком и без
+  function avgSpectra(spec, toneTimes) {
+    const { frames } = spec;
+    const n = frames[0].mag.length;
+    const on = new Float64Array(n), off = new Float64Array(n);
+    let cOn = 0, cOff = 0;
+    frames.forEach(fr => {
+      const isOn = toneTimes.has(fr.t);
+      const acc = isOn ? on : off;
+      for (let k = 0; k < n; k++) acc[k] += Math.pow(10, fr.mag[k] / 10);
+      isOn ? cOn++ : cOff++;
+    });
+    const toDb = (a, c) => Float32Array.from(a, v => 10 * Math.log10(Math.max(v / Math.max(c, 1), 1e-24)));
+    return { on: toDb(on, cOn), off: toDb(off, cOff), cOn, cOff };
+  }
+
+  // Огибающая на частоте f0: комплексная демодуляция + скользящее окно winMs, шаг stepMs
+  function envelope(x, sr, f0, winMs = 5, stepMs = 1) {
+    const W = Math.max(8, Math.round(sr * winMs / 1000)), H = Math.max(1, Math.round(sr * stepMs / 1000));
+    const n = x.length, w = 2 * Math.PI * f0 / sr;
+    const ci = new Float64Array(n + 1), cq = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) { ci[i + 1] = ci[i] + x[i] * Math.cos(w * i); cq[i + 1] = cq[i] + x[i] * Math.sin(w * i); }
+    const out = [];
+    for (let s = 0; s + W <= n; s += H) {
+      const I = ci[s + W] - ci[s], Q = cq[s + W] - cq[s];
+      out.push(db(2 * Math.hypot(I, Q) / W));
+    }
+    return { env: Float32Array.from(out), dt: H / sr, t0: W / 2 / sr };
+  }
+
+  function pulses(envObj, minPulseMs = 8, mergeGapMs = 4) {
+    const { env, dt, t0 } = envObj;
+    const floor = pct(env, 0.2), top = pct(env, 0.995);
+    if (top - floor < 12) return { floor, top, thr: NaN, list: [] };
+    const thr = floor + 0.5 * (top - floor), hyst = 3;
+    let on = false, start = 0;
+    const raw = [];
+    for (let i = 0; i < env.length; i++) {
+      if (!on && env[i] > thr + hyst) { on = true; start = i; }
+      else if (on && env[i] < thr - hyst) { on = false; raw.push([start, i]); }
+    }
+    if (on) raw.push([start, env.length - 1]);
+    const merged = [];
+    raw.forEach(p => {
+      const last = merged[merged.length - 1];
+      if (last && (p[0] - last[1]) * dt * 1000 < mergeGapMs) last[1] = p[1];
+      else merged.push(p.slice());
+    });
+    let list = merged
+      .filter(p => (p[1] - p[0]) * dt * 1000 >= minPulseMs)
+      .map(([a, b]) => {
+        let pk = -Infinity; for (let i = a; i < b; i++) pk = Math.max(pk, env[i]);
+        return { start: t0 + a * dt, end: t0 + b * dt, dur: (b - a) * dt, peak: pk };
+      });
+    // выбрасываем всплески шума: пик намного ниже типичного импульса
+    const typical = median(list.map(q => q.peak));
+    const rejected = list.filter(q => q.peak < typical - 8).length;
+    list = list.filter(q => q.peak >= typical - 8);
+    return { floor, top, thr, list, rejected };
+  }
+
+  function groupPulses(list) {
+    if (list.length < 2) return { split: null, bursts: list.length ? [list] : [] };
+    const gaps = [];
+    for (let i = 1; i < list.length; i++) gaps.push(list[i].start - list[i - 1].end);
+    const s = gaps.slice().sort((a, b) => a - b);
+    let bestRatio = 1, split = null;
+    for (let i = 1; i < s.length; i++) {
+      const r = s[i] / Math.max(s[i - 1], 1e-3);
+      if (r > bestRatio) { bestRatio = r; split = Math.sqrt(s[i] * Math.max(s[i - 1], 1e-3)); }
+    }
+    if (bestRatio < 2.5) split = null;
+    const bursts = [[list[0]]];
+    for (let i = 1; i < list.length; i++) {
+      if (split !== null && gaps[i - 1] > split) bursts.push([list[i]]);
+      else bursts[bursts.length - 1].push(list[i]);
+    }
+    return { split, bursts };
+  }
+
+  function stats(a) {
+    if (!a.length) return null;
+    return { n: a.length, median: median(a), min: Math.min(...a), max: Math.max(...a) };
+  }
+
+  function analyze(x, sr) {
+    const spec = stft(x, sr);
+    const tone = findTone(spec);
+    const res = { sampleRate: sr, durationSec: x.length / sr, tone: null };
+    if (!tone.found) return { ...res, spec, toneRows: tone.rows };
+    const sel = new Set(tone.rows.filter(r => r.prom > 18 && Math.abs(r.f - tone.f0) <= 150).map(r => r.t));
+    const spectra = avgSpectra(spec, sel);
+    const harm = [1, 2, 3, 4].map(h => {
+      const k = Math.round(h * tone.f0 / spec.binHz);
+      if (k + 3 >= spectra.on.length) return { h, f: h * tone.f0, level: null };
+      let m = -Infinity; for (let j = k - 3; j <= k + 3; j++) m = Math.max(m, spectra.on[j]);
+      return { h, f: h * tone.f0, level: m, rel: null };
+    });
+    harm.forEach(hh => { if (hh.level !== null) hh.rel = hh.level - harm[0].level; });
+    // окно огибающей: самое короткое, при котором импульсы чётко выше шума
+    let envObj, p, winMs;
+    for (winMs of [5, 10, 20]) {
+      envObj = envelope(x, sr, tone.f0, winMs);
+      p = pulses(envObj, Math.max(8, 1.5 * winMs), Math.max(4, winMs));
+      if (p.top - p.floor >= 22) break;
+    }
+    const g = groupPulses(p.list);
+    const burstStarts = g.bursts.map(b => b[0].start);
+    const intraGaps = [];
+    g.bursts.forEach(b => { for (let i = 1; i < b.length; i++) intraGaps.push(b[i].start - b[i - 1].end); });
+    const periods = [];
+    for (let i = 1; i < burstStarts.length; i++) periods.push(burstStarts[i] - burstStarts[i - 1]);
+    const pulsePeriods = [];
+    g.bursts.forEach(b => { for (let i = 1; i < b.length; i++) pulsePeriods.push(b[i].start - b[i - 1].start); });
+    // полные пачки = не обрезанные краями записи
+    const complete = g.bursts.filter((b, i) => i > 0 && i < g.bursts.length - 1);
+    return {
+      ...res,
+      tone: {
+        f0: tone.f0, fMin: tone.fMin, fMax: tone.fMax,
+        peakLevelDbfs: tone.peakLevel, prominenceDb: tone.prominence,
+        harmonics: harm,
+      },
+      envelope: { windowMs: winMs, rejectedSpikes: p.rejected || 0, floorDb: p.floor, topDb: p.top, thresholdDb: p.thr, snrDb: p.top - p.floor },
+      pulses: {
+        count: p.list.length,
+        durationMs: stats(p.list.map(q => q.dur * 1000)),
+        list: p.list.map(q => ({ start: +q.start.toFixed(4), dur_ms: +(q.dur * 1000).toFixed(1), peak_db: +q.peak.toFixed(1) })),
+      },
+      bursts: {
+        count: g.bursts.length,
+        splitGapMs: g.split === null ? null : g.split * 1000,
+        pulsesPerBurst: g.bursts.map(b => b.length),
+        pulsesPerCompleteBurst: stats(complete.map(b => b.length)),
+        burstDurationMs: stats(g.bursts.map(b => (b[b.length - 1].end - b[0].start) * 1000)),
+        intraGapMs: stats(intraGaps.map(v => v * 1000)),
+        pulsePeriodMs: stats(pulsePeriods.map(v => v * 1000)),
+        burstPeriodSec: stats(periods),
+        starts: burstStarts.map(v => +v.toFixed(3)),
+      },
+      _plot: { spec, spectra, envObj, pulseList: p.list, bursts: g.bursts },
+    };
+  }
+
+  return { fft, stft, findTone, envelope, pulses, groupPulses, analyze, pct, median };
+})();
+if (typeof module !== 'undefined') module.exports = Analysis;
+
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const F_VIEW = 16000;             // верхняя граница водопада/спектра
+  let ctx = null, stream = null, src = null, analyser = null, capNode = null, sink = null;
+  let chunks = [], recLen = 0, recording = false, rafId = 0, t0 = 0, wakeLock = null, maxSamples = 0;
+  let lastSamples = null, lastSr = 48000, lastReport = null, lastSettings = null;
+
+  function msg(text, cls = 'warn') { $('msg').innerHTML = text ? `<div class="status ${cls}">${text}</div>` : ''; }
+  const fmt = (v, d = 0) => (v === null || v === undefined || !isFinite(v)) ? '—' : Number(v).toFixed(d);
+
+  // ---------- захват звука ----------
+  const WORKLET = `
+    class Cap extends AudioWorkletProcessor {
+      constructor() { super(); this.buf = new Float32Array(4096); this.n = 0; }
+      process(inputs) {
+        const ch = inputs[0] && inputs[0][0];
+        if (ch) {
+          for (let i = 0; i < ch.length; i++) {
+            this.buf[this.n++] = ch[i];
+            if (this.n === this.buf.length) { this.port.postMessage(this.buf); this.buf = new Float32Array(4096); this.n = 0; }
+          }
+        }
+        return true;
+      }
+    }
+    registerProcessor('cap', Cap);`;
+
+  function onChunk(f32) {
+    if (!recording) return;
+    chunks.push(f32); recLen += f32.length;
+    if (recLen >= maxSamples) stop();
+  }
+
+  async function start() {
+    msg('');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      msg('Браузер не даёт доступ к микрофону. Страница должна открываться по https (GitHub Pages подходит).', 'err'); return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1,
+        // старые нестандартные флаги Chrome
+        googEchoCancellation: false, googNoiseSuppression: false, googAutoGainControl: false, googHighpassFilter: false,
+      }});
+    } catch (e) {
+      msg('Нет доступа к микрофону: ' + e.message + '. Разрешите микрофон для этого сайта в настройках браузера.', 'err'); return;
+    }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+    src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 4096; analyser.smoothingTimeConstant = 0;
+    analyser.minDecibels = -120; analyser.maxDecibels = -20;
+    src.connect(analyser);
+    sink = ctx.createGain(); sink.gain.value = 0; sink.connect(ctx.destination);
+    try {
+      const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
+      await ctx.audioWorklet.addModule(url);
+      capNode = new AudioWorkletNode(ctx, 'cap', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
+      capNode.port.onmessage = e => onChunk(e.data);
+    } catch (e) {
+      capNode = ctx.createScriptProcessor(4096, 1, 1);
+      capNode.onaudioprocess = e => onChunk(new Float32Array(e.inputBuffer.getChannelData(0)));
+    }
+    src.connect(capNode); capNode.connect(sink);
+
+    const tr = stream.getAudioTracks()[0];
+    lastSettings = tr.getSettings ? tr.getSettings() : {};
+    showSettings(lastSettings);
+
+    chunks = []; recLen = 0; recording = true; t0 = performance.now();
+    lastSr = ctx.sampleRate;
+    maxSamples = Math.round(Math.min(300, Math.max(10, +$('maxdur').value || 120)) * lastSr);
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) {}
+    $('btnStart').classList.add('hidden'); $('btnStop').classList.remove('hidden');
+    $('livePanel').classList.remove('hidden'); $('resultPanel').classList.add('hidden');
+    $('fileIn').disabled = true;
+    setupWaterfall();
+    loop();
+  }
+
+  function showSettings(s) {
+    const flag = (name, v) => v === undefined ? `${name}: <b>?</b>` :
+      `${name}: <b class="${v ? 'bad' : 'ok'}">${v ? 'ВКЛ' : 'выкл'}</b>`;
+    $('micSettings').innerHTML = 'Обработка микрофона — ' + [
+      flag('шумоподавление', s.noiseSuppression), flag('эхоподавление', s.echoCancellation), flag('автоусиление', s.autoGainControl)
+    ].join(' · ') + ` · ${s.sampleRate || ctx.sampleRate} Гц`;
+    if (s.noiseSuppression || s.autoGainControl)
+      msg('Браузер не отключил обработку микрофона. Писк всё равно может быть виден, но уровни будут неточными. Лучше открыть страницу в Chrome.', 'warn');
+  }
+
+  function stop() {
+    if (!recording) return;
+    recording = false;
+    cancelAnimationFrame(rafId);
+    try { src.disconnect(); capNode.disconnect(); } catch (_) {}
+    stream.getTracks().forEach(t => t.stop());
+    try { wakeLock && wakeLock.release(); } catch (_) {}
+    ctx.close();
+    $('btnStop').classList.add('hidden'); $('btnStart').classList.remove('hidden');
+    $('btnStart').textContent = '🎙 Записать заново';
+    $('fileIn').disabled = false;
+    const x = new Float32Array(recLen);
+    let o = 0; chunks.forEach(c => { x.set(c.subarray(0, Math.min(c.length, recLen - o)), o); o += c.length; });
+    chunks = [];
+    runAnalysis(x, lastSr, 'микрофон');
+  }
+
+  // ---------- живой водопад ----------
+  let wf, wfCtx, freqBuf;
+  function setupWaterfall() {
+    wf = $('waterfall');
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    wf.width = Math.round(wf.clientWidth * dpr); wf.height = Math.round(260 * dpr);
+    wfCtx = wf.getContext('2d');
+    wfCtx.fillStyle = '#000'; wfCtx.fillRect(0, 0, wf.width, wf.height);
+    freqBuf = new Float32Array(analyser.frequencyBinCount);
+  }
+  function colormap(v) { // 0..1 -> тёмно-синий..жёлтый
+    const r = Math.min(255, Math.max(0, 255 * (1.6 * v - 0.4)));
+    const g = Math.min(255, Math.max(0, 255 * (1.4 * v - 0.5)));
+    const b = Math.min(255, Math.max(0, 255 * (v < 0.5 ? 0.25 + v : 1.25 - v)));
+    return [r, g, b];
+  }
+  function loop() {
+    rafId = requestAnimationFrame(loop);
+    $('recTime').textContent = ((performance.now() - t0) / 1000).toFixed(1) + ' с';
+    analyser.getFloatFrequencyData(freqBuf);
+    const binHz = ctx.sampleRate / analyser.fftSize;
+    // пик 1–10 кГц и его выделенность над медианой
+    const kLo = Math.ceil(1000 / binHz), kHi = Math.floor(10000 / binHz);
+    let best = kLo; for (let k = kLo; k <= kHi; k++) if (freqBuf[k] > freqBuf[best]) best = k;
+    const band = Array.from(freqBuf.subarray(kLo, kHi + 1)).sort((a, b) => a - b);
+    const prom = freqBuf[best] - band[band.length >> 1];
+    const a = freqBuf[best - 1], b = freqBuf[best], c = freqBuf[best + 1];
+    const d = (a - c) / (2 * (a - 2 * b + c) || 1);
+    if (prom > 18) $('liveFreq').innerHTML = `${(best + d) * binHz | 0} <small>Гц</small>`;
+    else $('liveFreq').innerHTML = `— <small>Гц</small>`;
+    $('liveProm').textContent = `выделенность пика: ${prom.toFixed(0)} dB` + (prom > 18 ? ' — тон есть' : '');
+    $('liveMeter').style.width = Math.max(0, Math.min(100, (prom - 5) * 2.5)) + '%';
+    $('liveMeter').style.background = prom > 18 ? 'var(--ok)' : 'var(--accent)';
+    // строка водопада
+    const W = wf.width, H = wf.height, rowH = Math.max(1, Math.round(H / 260));
+    wfCtx.drawImage(wf, 0, 0, W, H - rowH, 0, rowH, W, H - rowH);
+    const img = wfCtx.createImageData(W, rowH);
+    for (let x = 0; x < W; x++) {
+      const k = Math.min(freqBuf.length - 1, Math.floor(x / W * F_VIEW / binHz));
+      const v = Math.max(0, Math.min(1, (freqBuf[k] + 120) / 90));
+      const [r, g, bl] = colormap(v);
+      for (let y = 0; y < rowH; y++) { const i = (y * W + x) * 4; img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = bl; img.data[i + 3] = 255; }
+    }
+    wfCtx.putImageData(img, 0, 0);
+    // метки частот
+    wfCtx.fillStyle = 'rgba(255,255,255,.22)'; wfCtx.font = `${11 * (W / wf.clientWidth)}px system-ui`;
+    for (let f = 2000; f < F_VIEW; f += 2000) { const x = f / F_VIEW * W; wfCtx.fillRect(x, 0, 1, 4 * rowH); }
+  }
+
+  // ---------- анализ ----------
+  function runAnalysis(x, sr, source) {
+    lastSamples = x; lastSr = sr;
+    $('resultPanel').classList.remove('hidden');
+    $('verdict').innerHTML = '<div class="status warn">Анализирую…</div>';
+    $('cards').innerHTML = '';
+    setTimeout(() => {
+      let r;
+      try { r = Analysis.analyze(x, sr); }
+      catch (e) { $('verdict').innerHTML = `<div class="status err">Ошибка анализа: ${e.message}</div>`; return; }
+      render(r, source);
+    }, 30);
+  }
+
+  function render(r, source) {
+    const plot = r._plot;
+    const rep = JSON.parse(JSON.stringify({ ...r, _plot: undefined, spec: undefined, toneRows: undefined }));
+    rep.meta = {
+      created: new Date().toISOString(), source, distanceM: +$('dist').value || null,
+      userAgent: navigator.userAgent, micSettings: source === 'микрофон' ? lastSettings : null,
+    };
+    lastReport = rep;
+    $('jsonOut').textContent = JSON.stringify(rep, null, 2);
+
+    if (!r.tone) {
+      $('verdict').innerHTML = `<div class="status err">Писк не найден в записи (${fmt(r.durationSec, 1)} с). Поднесите ошейник ближе и убедитесь, что он пищал во время записи.</div>`;
+      ['specCanvas', 'envCanvas', 'zoomCanvas'].forEach(id => clearCanvas($(id)));
+      return;
+    }
+    try { localStorage.setItem('catBeepProfile', JSON.stringify({
+      f0: r.tone.f0, fMin: r.tone.fMin, fMax: r.tone.fMax, harmonics: r.tone.harmonics,
+      pulseMs: r.pulses.durationMs, intraGapMs: r.bursts.intraGapMs, pulsePeriodMs: r.bursts.pulsePeriodMs,
+      pulsesPerBurst: r.bursts.pulsesPerCompleteBurst, burstPeriodSec: r.bursts.burstPeriodSec,
+      refLevelDbfs: r.envelope.topDb, refDistanceM: rep.meta.distanceM, created: rep.meta.created,
+    })); } catch (_) {}
+
+    const t = r.tone, b = r.bursts, p = r.pulses, e = r.envelope;
+    const warn = [];
+    if (e.snrDb < 20) warn.push('Сигнал слабый относительно фона: ритм может определиться неточно. Поднесите ошейник ближе или уберите шум.');
+    if (b.count < 3) warn.push('Записано меньше трёх пачек: период повторения пачек оценить нельзя. Пишите дольше.');
+    $('verdict').innerHTML = warn.length
+      ? warn.map(w => `<div class="status warn">${w}</div>`).join('')
+      : `<div class="status good">Писк найден и хорошо выделяется. Профиль сохранён.</div>`;
+
+    const card = (k, v, s = '') => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+    const h = t.harmonics.filter(x => x.h > 1 && x.rel !== null).map(x => `×${x.h}: ${fmt(x.rel)} dB`).join(', ');
+    const st = (o, d = 0, unit = '') => o ? `${fmt(o.median, d)}${unit}` : '—';
+    const rng = (o, d = 0) => o && o.n > 1 ? `от ${fmt(o.min, d)} до ${fmt(o.max, d)}` : '';
+    $('cards').innerHTML = [
+      card('Частота', `${fmt(t.f0)} Гц`, `разброс ${fmt(t.fMin)}–${fmt(t.fMax)} Гц`),
+      card('Гармоники', `${t.harmonics.filter(x => x.rel !== null && x.rel > -40).length - 1}`, h || '—'),
+      card('Писк над фоном', `${fmt(e.snrDb)} dB`, `окно ${e.windowMs} мс`),
+      card('Импульсов найдено', `${p.count}`, `за ${fmt(r.durationSec, 1)} с`),
+      card('Длина импульса', st(p.durationMs, 0, ' мс'), rng(p.durationMs)),
+      card('Пауза внутри пачки', st(b.intraGapMs, 0, ' мс'), rng(b.intraGapMs)),
+      card('Импульсов в пачке', b.pulsesPerCompleteBurst ? st(b.pulsesPerCompleteBurst) : (b.pulsesPerBurst.join(', ') || '—'),
+        b.pulsesPerCompleteBurst ? rng(b.pulsesPerCompleteBurst) : 'по всем пачкам'),
+      card('Длина пачки', st(b.burstDurationMs, 0, ' мс'), rng(b.burstDurationMs)),
+      card('Период пачек', st(b.burstPeriodSec, 2, ' с'), rng(b.burstPeriodSec, 2)),
+      card('Уровень у ошейника', `${fmt(e.topDb)} dBFS`, `на ${fmt(rep.meta.distanceM, 1)} м`),
+    ].join('');
+
+    drawSpectrum($('specCanvas'), plot.spectra, plot.spec.binHz, t);
+    drawEnvelope($('envCanvas'), plot.envObj, e, plot.pulseList, null);
+    const bursts = plot.bursts;
+    const pick = bursts.length > 2 ? bursts[1] : bursts[0];
+    if (pick && pick.length) {
+      const a = pick[0].start, z = pick[pick.length - 1].end, pad = Math.max(0.05, (z - a) * 0.25);
+      drawEnvelope($('zoomCanvas'), plot.envObj, e, plot.pulseList, [Math.max(0, a - pad), z + pad]);
+    } else clearCanvas($('zoomCanvas'));
+  }
+
+  // ---------- графики ----------
+  function prep(cv) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cssH = +cv.getAttribute('height') > 0 && cv.dataset.h ? +cv.dataset.h : (cv.dataset.h = cv.getAttribute('height'));
+    cv.width = Math.round(cv.clientWidth * dpr); cv.height = Math.round(cssH * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g, W: cv.clientWidth, H: +cssH };
+  }
+  function clearCanvas(cv) { const { g, W, H } = prep(cv); g.fillStyle = '#000'; g.fillRect(0, 0, W, H); }
+  function axes(g, W, H, L, B, xTicks, yTicks, xLab, yLab) {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#222'; g.fillStyle = '#8b949e'; g.font = '11px system-ui'; g.lineWidth = 1;
+    xTicks.forEach(([x, s]) => { g.beginPath(); g.moveTo(x, 4); g.lineTo(x, H - B); g.stroke(); g.textAlign = 'center'; g.fillText(s, x, H - B + 14); });
+    yTicks.forEach(([y, s]) => { g.beginPath(); g.moveTo(L, y); g.lineTo(W - 4, y); g.stroke(); g.textAlign = 'right'; g.fillText(s, L - 4, y + 4); });
+    g.textAlign = 'right'; g.fillText(xLab, W - 6, H - 4);
+    g.save(); g.translate(11, 12); g.textAlign = 'left'; g.fillText(yLab, 0, 0); g.restore();
+  }
+  function drawSpectrum(cv, spectra, binHz, tone) {
+    const { g, W, H } = prep(cv); const L = 40, B = 34;
+    const kMax = Math.min(spectra.on.length - 1, Math.floor(F_VIEW / binHz));
+    let top = -Infinity; for (let k = 5; k <= kMax; k++) top = Math.max(top, spectra.on[k]);
+    const yMax = Math.ceil((top + 5) / 10) * 10, yMin = yMax - 100;
+    const X = f => L + (f / F_VIEW) * (W - L - 6), Y = v => 4 + (yMax - v) / (yMax - yMin) * (H - B - 4);
+    const xt = []; for (let f = 0; f <= F_VIEW; f += 2000) xt.push([X(f), f / 1000 + '']);
+    const yt = []; for (let v = yMax; v >= yMin; v -= 20) yt.push([Y(v), v + '']);
+    axes(g, W, H, L, B, xt, yt, 'кГц', 'dBFS');
+    tone.harmonics.forEach(hh => { if (hh.f < F_VIEW) { g.strokeStyle = 'rgba(88,166,255,.5)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(X(hh.f), 4); g.lineTo(X(hh.f), H - B); g.stroke(); g.setLineDash([]); } });
+    const line = (arr, col) => {
+      g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath();
+      // по пикселю — максимум, чтобы узкий пик не потерялся
+      const px = W - L - 6;
+      for (let i = 0; i < px; i++) {
+        const k0 = Math.floor(i / px * kMax), k1 = Math.max(k0 + 1, Math.floor((i + 1) / px * kMax));
+        let m = -Infinity; for (let k = k0; k < k1; k++) m = Math.max(m, arr[k]);
+        const y = Y(Math.max(yMin, m)); i ? g.lineTo(L + i, y) : g.moveTo(L + i, y);
+      }
+      g.stroke();
+    };
+    if (spectra.cOff) line(spectra.off, '#8b949e');
+    line(spectra.on, '#f5b301');
+    g.fillStyle = '#f5b301'; g.font = 'bold 12px system-ui'; g.textAlign = 'left';
+    g.fillText(`${tone.f0.toFixed(0)} Гц`, X(tone.f0) + 5, Y(tone.harmonics[0].level) + 4);
+  }
+  function drawEnvelope(cv, envObj, e, pulseList, range) {
+    const { g, W, H } = prep(cv); const L = 40, B = 34;
+    const { env, dt, t0 } = envObj;
+    const tMax = t0 + env.length * dt;
+    const [ta, tb] = range || [0, tMax];
+    const yMax = Math.ceil((e.topDb + 5) / 10) * 10, yMin = Math.floor((e.floorDb - 10) / 10) * 10;
+    const X = t => L + (t - ta) / (tb - ta) * (W - L - 6), Y = v => 4 + (yMax - v) / (yMax - yMin) * (H - B - 4);
+    const span = tb - ta;
+    const step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 60].find(s => span / s <= 8) || 60;
+    const xt = []; for (let t = Math.ceil(ta / step) * step; t <= tb; t += step) xt.push([X(t), step < 1 ? (t * 1000).toFixed(0) : t.toFixed(0)]);
+    const yt = []; for (let v = yMax; v >= yMin; v -= 10) yt.push([Y(v), v + '']);
+    axes(g, W, H, L, B, xt, yt, step < 1 ? 'мс' : 'с', 'dB');
+    g.fillStyle = 'rgba(63,185,80,.22)';
+    pulseList.forEach(p => { if (p.end >= ta && p.start <= tb) g.fillRect(X(p.start), 4, Math.max(1, X(p.end) - X(p.start)), H - B - 4); });
+    g.strokeStyle = '#f85149'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(L, Y(e.thresholdDb)); g.lineTo(W - 6, Y(e.thresholdDb)); g.stroke(); g.setLineDash([]);
+    const i0 = Math.max(0, Math.floor((ta - t0) / dt)), i1 = Math.min(env.length - 1, Math.ceil((tb - t0) / dt));
+    const px = W - L - 6, per = Math.max(1, (i1 - i0) / px);
+    g.strokeStyle = '#f5b301'; g.lineWidth = 1; g.beginPath();
+    if (per <= 1.5) {
+      for (let i = i0; i <= i1; i++) { const x = X(t0 + i * dt), y = Y(Math.max(yMin, env[i])); i === i0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+    } else {
+      for (let c = 0; c < px; c++) {
+        const a = Math.floor(i0 + c * per), z = Math.min(i1, Math.floor(i0 + (c + 1) * per));
+        let lo = Infinity, hi = -Infinity; for (let i = a; i <= z; i++) { lo = Math.min(lo, env[i]); hi = Math.max(hi, env[i]); }
+        g.moveTo(L + c + 0.5, Y(Math.max(yMin, hi))); g.lineTo(L + c + 0.5, Y(Math.max(yMin, lo)) + 0.5);
+      }
+    }
+    g.stroke();
+  }
+
+  // ---------- файлы ----------
+  function download(name, blob) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function wav(x, sr) {
+    const n = x.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const s = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+    s(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); s(8, 'WAVE'); s(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    s(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, x[i])) * 32767, true);
+    return new Blob([buf], { type: 'audio/wav' });
+  }
+  const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  $('btnWav').onclick = () => lastSamples && download(`cat-beep-${stamp()}.wav`, wav(lastSamples, lastSr));
+  $('btnJson').onclick = () => lastReport && download(`cat-beep-${stamp()}.json`, new Blob([JSON.stringify(lastReport, null, 2)], { type: 'application/json' }));
+  $('btnCopy').onclick = async () => {
+    if (!lastReport) return;
+    const r = lastReport, t = r.tone || {}, b = r.bursts || {}, p = r.pulses || {};
+    const m = o => o ? `${o.median.toFixed(o.median < 10 ? 2 : 0)} (${o.min.toFixed(o.min < 10 ? 2 : 0)}–${o.max.toFixed(o.max < 10 ? 2 : 0)})` : '—';
+    const txt = !r.tone ? 'Писк не найден' : [
+      `Частота: ${t.f0.toFixed(1)} Гц (${t.fMin.toFixed(0)}–${t.fMax.toFixed(0)})`,
+      `Гармоники: ${t.harmonics.map(h => `×${h.h} ${h.rel === null ? '—' : h.rel.toFixed(0) + ' dB'}`).join(', ')}`,
+      `Писк над фоном: ${r.envelope.snrDb.toFixed(0)} dB, уровень ${r.envelope.topDb.toFixed(0)} dBFS на ${r.meta.distanceM} м`,
+      `Импульс, мс: ${m(p.durationMs)}; пауза в пачке, мс: ${m(b.intraGapMs)}; период импульсов, мс: ${m(b.pulsePeriodMs)}`,
+      `Импульсов в пачке: ${b.pulsesPerBurst.join(', ')}; длина пачки, мс: ${m(b.burstDurationMs)}`,
+      `Период пачек, с: ${m(b.burstPeriodSec)}; запись ${r.durationSec.toFixed(1)} с`,
+      `Микрофон: ${JSON.stringify(r.meta.micSettings)}`,
+    ].join('\n');
+    try { await navigator.clipboard.writeText(txt); $('btnCopy').textContent = '✓ Скопировано'; }
+    catch (_) { $('jsonOut').textContent = txt; $('btnCopy').textContent = 'Сводка показана ниже'; }
+    setTimeout(() => $('btnCopy').textContent = '📋 Копировать сводку', 2000);
+  };
+  $('fileIn').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    msg('Читаю файл…');
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ab = await ac.decodeAudioData(await f.arrayBuffer());
+      const x = new Float32Array(ab.length);
+      for (let c = 0; c < ab.numberOfChannels; c++) { const d = ab.getChannelData(c); for (let i = 0; i < x.length; i++) x[i] += d[i] / ab.numberOfChannels; }
+      ac.close(); msg('');
+      $('livePanel').classList.add('hidden');
+      runAnalysis(x, ab.sampleRate, 'файл: ' + f.name);
+    } catch (e) { msg('Не удалось прочитать файл: ' + e.message + '. Попробуйте WAV или M4A.', 'err'); }
+    ev.target.value = '';
+  };
+  $('btnStart').onclick = start;
+  $('btnStop').onclick = stop;
+  window.addEventListener('resize', () => { if (wf && recording) setupWaterfall(); });
+})();
+</script>
+</body>
+</html>
